@@ -13,7 +13,7 @@ Advanced Deep Q-Network implementation that trains an AI agent to master car rac
 
 ## 🚀 Live Demo
 
-**:** [https://dqn-carracing-portfolio.onrender.com](https://dqn-carracing-portfolio.onrender.com)
+**:** [DEMO]([https://dqn-carracing-portfolio.onrender.com](https://dqn-carracing-rl-x9h7.onrender.com))
 
 ## ⚡ Quick Start
 
