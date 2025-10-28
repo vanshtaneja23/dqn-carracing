@@ -1,0 +1,407 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DQN CarRacing AI - Deep Reinforcement Learning Portfolio</title>
+
+    <!-- Meta tags for LinkedIn sharing -->
+    <meta property="og:title" content="DQN CarRacing AI - Deep Reinforcement Learning Project">
+    <meta property="og:description"
+        content="Advanced Deep Q-Network implementation for autonomous car racing with reward shaping, exploration optimization, and comprehensive analysis tools.">
+    <meta property="og:type" content="website">
+    <meta property="og:image" content="https://your-app.onrender.com/static/images/project-preview.png">
+
+    <!-- Modern Fonts -->
+    <link
+        href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap"
+        rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/particles.js@2.0.0/particles.min.js"></script>
+</head>
+
+<body>
+    <!-- Particle Background -->
+    <div id="particles-js"></div>
+
+    <!-- Navigation -->
+    <nav class="navbar">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-car-side"></i>
+                <span>DQN CarRacing AI</span>
+            </div>
+            <div class="nav-links">
+                <a href="#overview" class="nav-link">Overview</a>
+                <a href="#performance" class="nav-link">Performance</a>
+                <a href="#technical" class="nav-link">Technical</a>
+                <a href="#results" class="nav-link">Results</a>
+                <a href="https://github.com/vanshtaneja23/" class="nav-link" target="_blank">
+                    <i class="fab fa-github"></i> GitHub
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero">
+        <div class="hero-content">
+            <div class="hero-text">
+                <h1 class="hero-title">
+                    Deep Q-Network for
+                    <span class="gradient-text">Autonomous Racing</span>
+                </h1>
+                <p class="hero-subtitle">
+                    Advanced Deep Q-Network that learned autonomous racing, achieving
+                    <strong>{{ project_stats.avg_reward }}</strong> average reward score
+                    with <strong>{{ project_stats.success_rate }}%</strong> lap completion rate
+                </p>
+                <div class="hero-stats">
+                    <div class="stat-item">
+                        <div class="stat-number">{{ project_stats.avg_reward }}</div>
+                        <div class="stat-label">Average Reward Score</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ project_stats.success_rate }}%</div>
+                        <div class="stat-label">Success Rate</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-number">{{ project_stats.convergence_episodes }}</div>
+                        <div class="stat-label">Episodes to Converge</div>
+                    </div>
+                </div>
+                <div class="hero-buttons">
+                    <a href="#performance" class="btn btn-primary">
+                        <i class="fas fa-chart-line"></i>
+                        View Results
+                    </a>
+                    <a href="#technical" class="btn btn-secondary">
+                        <i class="fas fa-code"></i>
+                        Technical Details
+                    </a>
+                </div>
+            </div>
+            <div class="hero-visual">
+                <div class="car-animation">
+                    <i class="fas fa-car-side"></i>
+                </div>
+                <div class="track-lines"></div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Overview Section -->
+    <section id="overview" class="section">
+        <div class="container">
+            <h2 class="section-title">Project Overview</h2>
+            <div class="overview-grid">
+                <div class="overview-card">
+                    <div class="card-icon">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3>Deep Q-Network</h3>
+                    <p>State-of-the-art reinforcement learning algorithm with experience replay and target networks for
+                        stable training.</p>
+                </div>
+                <div class="overview-card">
+                    <div class="card-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <h3>Reward Shaping</h3>
+                    <p>Optimized reward function with penalties for off-track behavior and bonuses for speed maintenance
+                        and lap completion.</p>
+                </div>
+                <div class="overview-card">
+                    <div class="card-icon">
+                        <i class="fas fa-search"></i>
+                    </div>
+                    <h3>Exploration Strategy</h3>
+                    <p>Adaptive epsilon-greedy exploration with optimized decay schedules balancing exploration vs
+                        exploitation.</p>
+                </div>
+                <div class="overview-card">
+                    <div class="card-icon">
+                        <i class="fas fa-chart-bar"></i>
+                    </div>
+                    <h3>Training Analysis</h3>
+                    <p>Comprehensive diagnostic tools for detecting training instabilities and failure modes with
+                        automated recommendations.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Performance Section -->
+    <section id="performance" class="section section-dark">
+        <div class="container">
+            <h2 class="section-title">Performance Analysis</h2>
+
+            <!-- Key Metrics -->
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <i class="fas fa-trophy"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-value">{{ "%.0f"|format(performance_data.final_performance) }}</div>
+                        <div class="metric-label">Final Reward Score</div>
+                        <div class="metric-description">Average reward in last 100 episodes</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-value">{{ "%.0f"|format(performance_data.peak_performance) }}</div>
+                        <div class="metric-label">Best Single Episode</div>
+                        <div class="metric-description">Highest reward achieved</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <i class="fas fa-clock"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-value">{{ project_stats.convergence_episodes }}</div>
+                        <div class="metric-label">Training Episodes</div>
+                        <div class="metric-description">Episodes needed to learn racing</div>
+                    </div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-icon">
+                        <i class="fas fa-check-circle"></i>
+                    </div>
+                    <div class="metric-content">
+                        <div class="metric-value">{{ project_stats.success_rate }}%</div>
+                        <div class="metric-label">Lap Completion Rate</div>
+                        <div class="metric-description">Successfully completed laps</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Performance Chart -->
+            <div class="chart-container">
+                <h3>Training Progress</h3>
+                <div class="chart-wrapper">
+                    <canvas id="performanceChart"></canvas>
+                </div>
+                <div class="chart-loading" id="chartLoading">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    Loading performance data...
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Technical Section -->
+    <section id="technical" class="section">
+        <div class="container">
+            <h2 class="section-title">Technical Implementation</h2>
+
+            <div class="technical-grid">
+                <div class="tech-card">
+                    <h3><i class="fas fa-network-wired"></i> Neural Architecture</h3>
+                    <div class="tech-details">
+                        <div class="tech-item">
+                            <span class="tech-label">Input:</span>
+                            <span class="tech-value">84×84×4 Grayscale Frames</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-label">Conv Layers:</span>
+                            <span class="tech-value">3 layers (32→64→64 filters)</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-label">FC Layers:</span>
+                            <span class="tech-value">512 → 5 actions</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-label">Activation:</span>
+                            <span class="tech-value">ReLU + Xavier Init</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tech-card">
+                    <h3><i class="fas fa-cogs"></i> Training Configuration</h3>
+                    <div class="tech-details">
+                        {% if project_stats.latest_run %}
+                        <div class="tech-item">
+                            <span class="tech-label">Learning Rate:</span>
+                            <span class="tech-value">{{ project_stats.latest_run.config.learning_rate }}</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-label">Batch Size:</span>
+                            <span class="tech-value">{{ project_stats.latest_run.config.batch_size }}</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-label">Target Update:</span>
+                            <span class="tech-value">Every {{ project_stats.latest_run.config.target_update }}
+                                steps</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-label">Epsilon Decay:</span>
+                            <span class="tech-value">{{ project_stats.latest_run.config.epsilon_decay }}</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="tech-card">
+                    <h3><i class="fas fa-memory"></i> Experience Replay</h3>
+                    <div class="tech-details">
+                        <div class="tech-item">
+                            <span class="tech-label">Buffer Size:</span>
+                            <span class="tech-value">100,000 transitions</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-label">Sampling:</span>
+                            <span class="tech-value">Uniform random</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-label">Frame Stacking:</span>
+                            <span class="tech-value">4 consecutive frames</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-label">Preprocessing:</span>
+                            <span class="tech-value">Grayscale + Resize</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tech-card">
+                    <h3><i class="fas fa-award"></i> Reward Engineering</h3>
+                    <div class="tech-details">
+                        <div class="tech-item">
+                            <span class="tech-label">Speed Bonus:</span>
+                            <span class="tech-value">1.5× positive rewards</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-label">Off-track Penalty:</span>
+                            <span class="tech-value">2× negative rewards</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-label">Completion Bonus:</span>
+                            <span class="tech-value">-100 for early termination</span>
+                        </div>
+                        <div class="tech-item">
+                            <span class="tech-label">Action Space:</span>
+                            <span class="tech-value">5 discrete actions</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Results Section -->
+    <section id="results" class="section section-dark">
+        <div class="container">
+            <h2 class="section-title">Key Achievements</h2>
+
+            <div class="achievements-grid">
+                <div class="achievement-card">
+                    <div class="achievement-icon">
+                        <i class="fas fa-rocket"></i>
+                    </div>
+                    <h3>Excellent Performance</h3>
+                    <p>Achieved <strong>{{ project_stats.avg_reward }}</strong> average reward with
+                        consistent lap completion and stable learning convergence.</p>
+                </div>
+
+                <div class="achievement-card">
+                    <div class="achievement-icon">
+                        <i class="fas fa-tools"></i>
+                    </div>
+                    <h3>Production-Ready Code</h3>
+                    <p>Modular architecture with comprehensive testing, experiment tracking, and automated diagnostic
+                        tools for training analysis.</p>
+                </div>
+
+                <div class="achievement-card">
+                    <div class="achievement-icon">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3>Advanced Analytics</h3>
+                    <p>Built comprehensive analysis framework with failure mode detection, performance visualization,
+                        and training recommendations.</p>
+                </div>
+
+                <div class="achievement-card">
+                    <div class="achievement-icon">
+                        <i class="fas fa-graduation-cap"></i>
+                    </div>
+                    <h3>Research Quality</h3>
+                    <p>Implemented state-of-the-art DQN with experience replay, target networks, and optimized
+                        exploration strategies.</p>
+                </div>
+            </div>
+
+            <!-- Training Progress Images -->
+            {% if project_stats.latest_run and project_stats.latest_run.has_progress_image %}
+            <div class="training-results">
+                <h3>Training Results</h3>
+                <div class="training-image">
+                    <img src="{{ url_for('training_progress', run_name=project_stats.latest_run.name) }}"
+                        alt="Training Progress" class="progress-image">
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>DQN CarRacing AI</h4>
+                    <p>Advanced Deep Reinforcement Learning for Autonomous Racing</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Technologies</h4>
+                    <div class="tech-tags">
+                        <span class="tech-tag">PyTorch</span>
+                        <span class="tech-tag">Deep Q-Networks</span>
+                        <span class="tech-tag">Computer Vision</span>
+                        <span class="tech-tag">Reinforcement Learning</span>
+                    </div>
+                </div>
+                <div class="footer-section">
+                    <h4>Connect</h4>
+                    <div class="social-links">
+                        <a href="https://www.linkedin.com/in/vansh-taneja-a10746238/" target="_blank">
+                            <i class="fab fa-linkedin"></i>
+                        </a>
+                        <a href="https://github.com/vanshtaneja23" target="_blank">
+                            <i class="fab fa-github"></i>
+                        </a>
+                        <a href="mailto:vtaneja1@ualberta.ca">
+                            <i class="fas fa-envelope"></i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 DQN CarRacing AI Portfolio. Built with Flask & Modern Web Technologies.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+
+    <!-- Initialize performance data -->
+    <script>
+        window.performanceData = {{ performance_data | tojson }};
+    </script>
+</body>
+
+</html>
