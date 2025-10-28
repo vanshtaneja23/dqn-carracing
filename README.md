@@ -13,7 +13,7 @@ Advanced Deep Q-Network implementation that trains an AI agent to master car rac
 
 ## 🚀 Live Demo
 
-**Portfolio:** [https://dqn-carracing-portfolio.onrender.com](https://dqn-carracing-portfolio.onrender.com)
+**:** [https://dqn-carracing-portfolio.onrender.com](https://dqn-carracing-portfolio.onrender.com)
 
 ## ⚡ Quick Start
 
@@ -32,13 +32,7 @@ python app.py
 
 Visit `http://localhost:8080` to view the portfolio.
 
-### Deploy to Render
-1. Fork this repository
-2. Connect to [Render](https://render.com)
-3. Create **Web Service** with:
-   - **Build Command:** `pip install -r requirements.txt`
-   - **Start Command:** `gunicorn app:app`
-   - **Environment:** Python 3
+
 
 ## 🏆 Key Results
 
