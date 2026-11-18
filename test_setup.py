@@ -93,9 +93,10 @@ def test_environment():
     try:
         from environment import CarRacingWrapper
         
-        # Create environment (will use mock if CarRacing not available)
+        # Real CarRacing-v3 only: the wrapper raises if Box2D is missing instead of mocking
         env = CarRacingWrapper(skip_frames=2, stack_frames=2)
-        print("✅ Environment created")
+        assert not env.is_mock, "training must never run on the mock environment"
+        print("✅ Environment created (CarRacing-v3)")
         
         # Test reset
         state, info = env.reset()

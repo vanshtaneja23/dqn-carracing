@@ -1,134 +1,67 @@
-# 🏎️ DQN CarRacing AI
+# DQN CarRacing
 
-[![Deploy to Render](https://img.shields.io/badge/Deploy%20to-Render-46E3B7.svg)](https://render.com)
-[![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)](https://python.org)
-[![PyTorch](https://img.shields.io/badge/PyTorch-2.0+-red.svg)](https://pytorch.org)
-[![Flask](https://img.shields.io/badge/Flask-2.3+-green.svg)](https://flask.palletsprojects.com)
+A Deep Q-Network agent for Gymnasium **CarRacing-v3**, learning to drive from pixels with 5 discrete
+actions, built in PyTorch. A small Flask page shows the measured results.
 
-> **Deep Q-Network agent for autonomous car racing using reinforcement learning and computer vision.**
+## Results
 
-## 🎯 Project Overview
+Trained for 1,000 episodes (about 74 minutes on an Apple Silicon Mac), then evaluated on the
+**standard CarRacing-v3 reward** with no shaping (`evaluate_agent.py`).
 
-Advanced Deep Q-Network implementation that trains an AI agent to master car racing from scratch. Achieved **847 average reward** with **92% lap completion rate** through optimized reward shaping and exploration strategies.
+| Checkpoint | Evaluation episodes | Average score |
+|---|---|---|
+| Episode 100 | 5 | -47 |
+| Episode 500 | 5 | 265 |
+| Episode 1000 | 5 | 689 |
+| **Best model** | **20** | **783 ± 128** (best 915, 2 of 20 episodes at 900+) |
 
-## 🚀 Live Demo
+CarRacing counts as solved at a 900+ average, so this agent drives most of the track reliably but
+is not solved yet. The numbers this README used to show (847 average reward, 92% lap completion)
+were not real and have been removed; "What went wrong" below explains why.
 
-**:** [DEMO]([https://dqn-carracing-portfolio.onrender.com](https://dqn-carracing-rl-x9h7.onrender.com))
+## What went wrong, and what I fixed
 
-## ⚡ Quick Start
+- **The committed training run never saw CarRacing.** When `CarRacing-v2` couldn't be created, the
+  environment wrapper silently fell back to a mock environment that returns random frames and random
+  rewards. Gymnasium 1.x renamed the environment to `CarRacing-v3`, so the fallback always fired. The
+  evidence: all 2,000 logged episodes were exactly 251 steps long, and a random policy on the mock
+  averages about 898, the same as the "trained" agent.
+- **Fixed:** the wrapper now uses `CarRacing-v3` and raises an error with an install hint instead of
+  mocking. The mock remains only behind an explicit `use_mock=True` for unit tests, `is_mock` is
+  recorded in each run's config, and `test_setup.py` asserts training runs on the real environment.
+  The invalid runs were deleted.
+- **Bugs that only showed up on the real environment:**
+  - Actions were passed as Python lists, which crashes CarRacing-v3. They are now NumPy arrays.
+  - Epsilon decayed on every gradient step, so exploration hit its floor after about 4 episodes.
+    It now decays once per episode.
+  - The device setting ignored Apple Silicon. It now picks CUDA, MPS or CPU.
+  - MSE loss on large shaped rewards. It now uses Huber loss, the standard choice for DQN.
+- **Results are reported only from measurement.** `evaluate_agent.py` scores the agent on the standard
+  (unshaped) reward and writes `eval.json`; training writes per-episode raw and shaped rewards to
+  `rewards.json`. The web page reads only those files.
 
-### Local Development
+## How it works
+
+| Part | Choice |
+|---|---|
+| Input | 4 stacked 84×84 grayscale frames, 4-frame skip |
+| Network | 3 conv layers (32, 64, 64 filters) → 512 fully connected → 5 actions |
+| Learning | Experience replay (100K transitions), target network synced every 1,000 updates, Adam (lr 1e-4), Huber loss |
+| Exploration | ε-greedy from 1.0 to 0.01, decayed ×0.995 per episode |
+| Training-only shaping | Boosted on-track rewards, heavier penalties for long off-track stretches, early stop when stuck |
+| Evaluation | Standard CarRacing-v3 reward, no shaping, 20 episodes. The environment counts as solved at 900+ |
+
+## Run it
+
 ```bash
-# Clone repository
-git clone https://github.com/vanshtaneja23/dqn-carracing.git
-cd dqn-carracing
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run web portfolio
-python app.py
+pip install -r requirements-train.txt
+python test_setup.py                  # checks the real environment loads
+python training.py --episodes 1000    # writes runs/<run>/ (checkpoints, TensorBoard logs, rewards.json)
+python evaluate_agent.py              # 20 episodes on the standard reward -> runs/<run>/eval.json
 ```
 
-Visit `http://localhost:8080` to view the portfolio.
+The results page: `pip install -r requirements.txt && python app.py`, then open http://localhost:8080.
 
+## License
 
-
-## 🏆 Key Results
-
-| Metric | Value |
-|--------|-------|
-| **Average Reward** | 847 |
-| **Success Rate** | 92% |
-| **Training Episodes** | 850 |
-| **Convergence Time** | ~4 hours |
-
-## 🛠️ Technical Implementation
-
-### Neural Architecture
-- **Input:** 84×84×4 grayscale frame stack
-- **CNN:** 3 convolutional layers (32→64→64 filters)
-- **FC:** 2 fully connected layers (512→5 actions)
-- **Activation:** ReLU with Xavier initialization
-
-### Training Features
-- **Experience Replay:** 100K capacity buffer
-- **Target Networks:** Stable Q-learning updates
-- **Exploration:** Adaptive epsilon-greedy (1.0→0.01)
-- **Reward Shaping:** Custom rewards for racing optimization
-
-### Web Portfolio
-- **Interactive Charts:** Real-time training visualization
-- **Performance Metrics:** Comprehensive analysis dashboard
-- **Responsive Design:** Modern UI with smooth animations
-- **Model Testing:** Live agent evaluation interface
-
-## 📁 Project Structure
-
-```
-├── app.py                 # Flask web application
-├── dqn_agent.py          # DQN implementation
-├── environment.py        # CarRacing environment wrapper
-├── training.py           # Training pipeline
-├── analysis.py           # Performance analysis tools
-├── templates/            # HTML templates
-├── static/              # CSS, JS, assets
-├── runs/                # Training results
-└── requirements.txt     # Dependencies
-```
-
-## 🔧 Technologies
-
-- **Deep Learning:** PyTorch, Deep Q-Networks
-- **Environment:** OpenAI Gymnasium, Computer Vision
-- **Web Framework:** Flask, HTML5, CSS3, JavaScript
-- **Visualization:** Chart.js, Matplotlib, Seaborn
-- **Deployment:** Render, Gunicorn
-
-## 📊 Training Process
-
-1. **State Preprocessing:** Frame stacking and grayscale conversion
-2. **Action Selection:** Epsilon-greedy exploration with decay
-3. **Experience Storage:** Replay buffer for stable learning
-4. **Network Updates:** Target network synchronization
-5. **Performance Tracking:** Real-time metrics and diagnostics
-
-## 🎨 Portfolio Features
-
-- **Training Overview:** Interactive performance charts
-- **Technical Details:** Architecture and implementation specs
-- **Model Comparison:** Different checkpoint analysis
-- **Live Testing:** Agent evaluation interface
-- **Results Gallery:** Training progress visualization
-
-## 📈 Performance Analysis
-
-The project includes comprehensive analysis tools:
-- Training stability detection
-- Failure mode diagnosis
-- Network weight analysis
-- Automated recommendations
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit changes (`git commit -m 'Add amazing feature'`)
-4. Push to branch (`git push origin feature/amazing-feature`)
-5. Open Pull Request
-
-## 📄 License
-
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## 🙏 Acknowledgments
-
-- OpenAI Gymnasium for the CarRacing environment
-- PyTorch team for the deep learning framework
-- Render for deployment platform
-
----
-
-**Built with ❤️ for the ML community**
-
-*Showcasing the power of Deep Reinforcement Learning in autonomous systems*
+MIT

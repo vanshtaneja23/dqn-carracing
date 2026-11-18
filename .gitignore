@@ -42,7 +42,11 @@ Thumbs.db
 # Environment variables
 .env
 
-# Training outputs (optional - you might want to keep some)
-# runs/
+# Training outputs: keep small result files only (the web app reads them)
+runs/*/*
+!runs/*/config.json
+!runs/*/rewards.json
+!runs/*/eval.json
+!runs/*/training_progress.png
 # *.pth
 # *.png
