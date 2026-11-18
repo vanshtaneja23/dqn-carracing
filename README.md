@@ -3,11 +3,21 @@
 A Deep Q-Network agent for Gymnasium **CarRacing-v3**, learning to drive from pixels with 5 discrete
 actions, built in PyTorch. A small Flask page shows the measured results.
 
-## Status
+## Results
 
-Training on the real environment is in progress. **No results are published yet.** The numbers this
-README used to show (847 average reward, 92% lap completion) were not real and have been removed.
-"What went wrong" below explains why.
+Trained for 1,000 episodes (about 74 minutes on an Apple Silicon Mac), then evaluated on the
+**standard CarRacing-v3 reward** with no shaping (`evaluate_agent.py`).
+
+| Checkpoint | Evaluation episodes | Average score |
+|---|---|---|
+| Episode 100 | 5 | -47 |
+| Episode 500 | 5 | 265 |
+| Episode 1000 | 5 | 689 |
+| **Best model** | **20** | **783 ± 128** (best 915, 2 of 20 episodes at 900+) |
+
+CarRacing counts as solved at a 900+ average, so this agent drives most of the track reliably but
+is not solved yet. The numbers this README used to show (847 average reward, 92% lap completion)
+were not real and have been removed; "What went wrong" below explains why.
 
 ## What went wrong, and what I fixed
 
