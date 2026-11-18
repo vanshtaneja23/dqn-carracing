@@ -30,120 +30,73 @@ class PortfolioData:
         self.load_project_data()
     
     def load_project_data(self):
-        """Load training data and project information"""
+        """Load training runs and their real, measured results"""
         self.runs = self.load_training_runs()
         self.project_stats = self.calculate_project_stats()
         self.performance_data = self.generate_performance_data()
-    
+
+    @staticmethod
+    def _read_json(path):
+        if os.path.exists(path):
+            with open(path, 'r') as f:
+                return json.load(f)
+        return None
+
     def load_training_runs(self):
-        """Load all training runs"""
+        """Load all training runs with their logged rewards and evaluation results"""
         runs_dir = 'runs'
         runs = []
-        
+
         if os.path.exists(runs_dir):
             for run_name in os.listdir(runs_dir):
                 if run_name.startswith('dqn_carracing'):
                     run_path = os.path.join(runs_dir, run_name)
-                    config_path = os.path.join(run_path, 'config.json')
-                    
-                    if os.path.exists(config_path):
-                        with open(config_path, 'r') as f:
-                            config = json.load(f)
-                        
-                        # Check for training progress image
-                        progress_image = os.path.join(run_path, 'training_progress.png')
-                        has_image = os.path.exists(progress_image)
-                        
-                        runs.append({
-                            'name': run_name,
-                            'path': run_path,
-                            'config': config,
-                            'timestamp': datetime.fromtimestamp(os.path.getctime(run_path)),
-                            'has_progress_image': has_image,
-                            'episodes': config.get('num_episodes', 0)
-                        })
-        
+                    config = self._read_json(os.path.join(run_path, 'config.json'))
+                    if config is None:
+                        continue
+                    runs.append({
+                        'name': run_name,
+                        'path': run_path,
+                        'config': config,
+                        'timestamp': datetime.fromtimestamp(os.path.getctime(run_path)),
+                        'has_progress_image': os.path.exists(os.path.join(run_path, 'training_progress.png')),
+                        'episodes': config.get('num_episodes', 0),
+                        'rewards': self._read_json(os.path.join(run_path, 'rewards.json')),
+                        'eval': self._read_json(os.path.join(run_path, 'eval.json')),
+                    })
+
         return sorted(runs, key=lambda x: x['timestamp'], reverse=True)
-    
+
     def calculate_project_stats(self):
-        """Calculate overall project statistics"""
-        if not self.runs:
-            return {
-                'total_runs': 0,
-                'total_episodes': 0,
-                'total_training_time': 0,
-                'avg_reward': 0,
-                'success_rate': 0,
-                'convergence_episodes': 0
-            }
-        
-        total_episodes = sum(run['episodes'] for run in self.runs)
-        main_runs = [run for run in self.runs if run['episodes'] > 100]  # Filter out test runs
-        
+        """Stats come only from eval.json (written by evaluate_agent.py on the standard reward)"""
+        evaluated = [r for r in self.runs if r['eval'] and r['eval'].get('environment') == 'CarRacing-v3']
+        best = max(evaluated, key=lambda r: r['eval']['avg_reward']) if evaluated else None
         return {
             'total_runs': len(self.runs),
-            'main_runs': len(main_runs),
-            'total_episodes': total_episodes,
-            'total_training_time': total_episodes * 0.1 / 60,  # Estimate hours
-            'avg_reward': 847,  # Average reward achieved
-            'success_rate': 92,  # Percentage of successful episodes
-            'convergence_episodes': 850,  # Episodes needed to converge
-            'latest_run': self.runs[0] if self.runs else None
+            'total_episodes': sum(len(r['rewards']['raw']) for r in self.runs if r['rewards']),
+            'avg_reward': round(best['eval']['avg_reward']) if best else None,
+            'success_rate': round(100 * best['eval']['share_900_plus']) if best else None,
+            'eval_episodes': best['eval']['episodes'] if best else None,
+            'latest_run': self.runs[0] if self.runs else None,
         }
-    
+
     def generate_performance_data(self):
-        """Generate realistic performance data for visualization"""
-        if not self.runs:
+        """Learning curve from the latest run's logged raw (unshaped) rewards"""
+        logged = [r for r in self.runs if r['rewards'] and r['rewards'].get('raw')]
+        if not logged:
             return {}
-        
-        # Use the main training run
-        main_run = next((run for run in self.runs if run['episodes'] >= 1000), self.runs[0])
-        episodes = main_run['episodes']
-        
-        # Generate realistic DQN learning curve
-        np.random.seed(42)
-        
-        # Learning phases
-        exploration_phase = min(200, episodes // 10)
-        learning_phase = min(800, episodes - exploration_phase - 200)
-        convergence_phase = episodes - exploration_phase - learning_phase
-        
-        rewards = []
-        
-        # Exploration phase: low, variable performance
-        exploration_rewards = np.random.normal(-50, 80, exploration_phase)
-        exploration_rewards = np.clip(exploration_rewards, -200, 100)
-        rewards.extend(exploration_rewards)
-        
-        # Learning phase: gradual improvement
-        for i in range(learning_phase):
-            base = -50 + (i / learning_phase) * 500
-            noise = np.random.normal(0, 60 - (i / learning_phase) * 20)
-            reward = base + noise
-            rewards.append(reward)
-        
-        # Convergence phase: stable high performance
-        if convergence_phase > 0:
-            convergence_rewards = np.random.normal(400, 80, convergence_phase)
-            convergence_rewards = np.clip(convergence_rewards, 200, 700)
-            rewards.extend(convergence_rewards)
-        
-        # Calculate moving average
+        rewards = logged[0]['rewards']['raw']
         window = 50
-        moving_avg = []
-        for i in range(len(rewards)):
-            start_idx = max(0, i - window + 1)
-            moving_avg.append(np.mean(rewards[start_idx:i+1]))
-        
+        moving_avg = [float(np.mean(rewards[max(0, i - window + 1):i + 1])) for i in range(len(rewards))]
         return {
             'episodes': list(range(len(rewards))),
             'rewards': rewards,
             'moving_average': moving_avg,
-            'final_performance': np.mean(rewards[-100:]) if len(rewards) > 100 else np.mean(rewards),
-            'peak_performance': max(rewards),
-            'learning_stability': np.std(rewards[-200:]) if len(rewards) > 200 else np.std(rewards)
+            'final_performance': float(np.mean(rewards[-100:])),
+            'peak_performance': float(max(rewards)),
+            'learning_stability': float(np.std(rewards[-200:])),
         }
-    
+
     def create_performance_chart(self):
         """Create performance visualization as base64 image"""
         if not self.performance_data:
@@ -213,7 +166,8 @@ def project_data():
                 'name': run['name'],
                 'episodes': run['episodes'],
                 'timestamp': run['timestamp'].isoformat(),
-                'config': run['config']
+                'config': run['config'],
+                'eval': run['eval']
             }
             for run in portfolio.runs
         ]

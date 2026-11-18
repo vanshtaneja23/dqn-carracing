@@ -6,18 +6,22 @@ from collections import deque
 class CarRacingWrapper:
     """Wrapper for CarRacing environment with preprocessing and reward shaping"""
     
-    def __init__(self, skip_frames=4, stack_frames=4, reward_shaping=True):
-        try:
-            # Try CarRacing-v2 first
-            self.env = gym.make('CarRacing-v2', render_mode='rgb_array')
-        except:
+    def __init__(self, skip_frames=4, stack_frames=4, reward_shaping=True,
+                 early_termination=None, use_mock=False):
+        if use_mock:
+            # Unit tests only: random frames and random rewards, NOT a real environment.
+            self.env = MockCarRacingEnv()
+        else:
             try:
-                # Fallback to CarRacing-v1
-                self.env = gym.make('CarRacing-v1')
-            except:
-                # If Box2D not available, create a mock environment for testing
-                print("Warning: CarRacing environment not available. Creating mock environment for testing.")
-                self.env = MockCarRacingEnv()
+                self.env = gym.make('CarRacing-v3', render_mode='rgb_array')
+            except Exception as e:
+                # Fail loudly. A silent fallback to the mock once trained a whole run on noise.
+                raise RuntimeError(
+                    "Could not create CarRacing-v3. Install Box2D: pip install 'gymnasium[box2d]'"
+                ) from e
+        self.is_mock = use_mock
+        # End training episodes early when the car is stuck off-track (on by default with shaping)
+        self.early_termination = reward_shaping if early_termination is None else early_termination
         self.skip_frames = skip_frames
         self.stack_frames = stack_frames
         self.reward_shaping = reward_shaping
@@ -100,7 +104,7 @@ class CarRacingWrapper:
     
     def step(self, action_idx):
         """Execute action and return next state"""
-        action = self.action_space[action_idx]
+        action = np.array(self.action_space[action_idx], dtype=np.float32)
         
         total_reward = 0
         done = False
@@ -121,7 +125,13 @@ class CarRacingWrapper:
         
         # Apply reward shaping
         shaped_reward = self._shape_reward(total_reward, done, info)
-        
+
+        # Stop wasting frames once the car has been off-track for a long stretch
+        if self.early_termination and self.negative_reward_counter > 50:
+            done = True
+
+        info = dict(info)
+        info['raw_reward'] = total_reward  # standard CarRacing reward, before shaping
         return np.array(self.frame_stack), shaped_reward, done, info
     
     def render(self):
@@ -145,7 +155,7 @@ class MockCarRacingEnv:
         self.action_space = gym.spaces.Box(low=-1, high=1, shape=(3,), dtype=np.float32)
         self.step_count = 0
         
-    def reset(self):
+    def reset(self, **kwargs):
         self.step_count = 0
         obs = np.random.randint(0, 255, (96, 96, 3), dtype=np.uint8)
         return obs, {}

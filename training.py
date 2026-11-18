@@ -22,6 +22,7 @@ class DQNTrainer:
             stack_frames=config['stack_frames'],
             reward_shaping=config['reward_shaping']
         )
+        config['environment'] = 'mock' if self.env.is_mock else 'CarRacing-v3'
         
         # Create agent
         self.agent = DQNAgent(
@@ -38,6 +39,7 @@ class DQNTrainer:
         
         # Training tracking
         self.episode_rewards = []
+        self.episode_raw_rewards = []  # standard CarRacing score, before shaping
         self.episode_lengths = []
         self.losses = []
         self.best_reward = -float('inf')
@@ -62,16 +64,19 @@ class DQNTrainer:
         print(f"Run directory: {self.save_dir}")
         
         for episode in tqdm(range(num_episodes), desc="Training"):
-            episode_reward, episode_length, avg_loss = self._train_episode()
+            episode_reward, raw_reward, episode_length, avg_loss = self._train_episode()
+            self.agent.decay_epsilon()
             
             # Track metrics
             self.episode_rewards.append(episode_reward)
+            self.episode_raw_rewards.append(raw_reward)
             self.episode_lengths.append(episode_length)
             if avg_loss is not None:
                 self.losses.append(avg_loss)
             
             # Log to tensorboard
             self.writer.add_scalar('Reward/Episode', episode_reward, episode)
+            self.writer.add_scalar('Reward/Raw', raw_reward, episode)
             self.writer.add_scalar('Length/Episode', episode_length, episode)
             self.writer.add_scalar('Epsilon', self.agent.epsilon, episode)
             if avg_loss is not None:
@@ -86,20 +91,29 @@ class DQNTrainer:
             if (episode + 1) % 100 == 0:
                 self._log_progress(episode + 1)
                 self.agent.save(f"{self.save_dir}/checkpoints/episode_{episode + 1}.pth")
+                self._save_rewards()
             
             # Early stopping check
             if self._check_convergence(episode):
                 print(f"Training converged at episode {episode + 1}")
                 break
         
+        self._save_rewards()
         self._save_training_plots()
         self.writer.close()
         print(f"Training completed! Best reward: {self.best_reward:.2f}")
     
+    def _save_rewards(self):
+        """Write per-episode rewards so results can be reported from real data"""
+        with open(f"{self.save_dir}/rewards.json", 'w') as f:
+            json.dump({'shaped': self.episode_rewards, 'raw': self.episode_raw_rewards,
+                       'lengths': self.episode_lengths}, f)
+
     def _train_episode(self):
         """Train for one episode"""
         state, _ = self.env.reset()
         episode_reward = 0
+        raw_reward = 0
         episode_length = 0
         losses = []
         
@@ -108,7 +122,8 @@ class DQNTrainer:
             action = self.agent.get_action(state, training=True)
             
             # Execute action
-            next_state, reward, done, _ = self.env.step(action)
+            next_state, reward, done, info = self.env.step(action)
+            raw_reward += info.get('raw_reward', 0.0)
             
             # Store experience
             self.agent.store_experience(state, action, reward, next_state, done)
@@ -127,7 +142,7 @@ class DQNTrainer:
                 break
         
         avg_loss = np.mean(losses) if losses else None
-        return episode_reward, episode_length, avg_loss
+        return episode_reward, raw_reward, episode_length, avg_loss
     
     def _log_progress(self, episode):
         """Log training progress"""
@@ -237,6 +252,11 @@ class DQNTrainer:
 
 def main():
     """Main training function"""
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument('--episodes', type=int, default=1000)
+    args = parser.parse_args()
+
     config = {
         # Environment settings
         'skip_frames': 4,
@@ -251,10 +271,10 @@ def main():
         'epsilon_decay': 0.995,
         'target_update': 1000,
         'batch_size': 32,
-        'device': 'cuda' if torch.cuda.is_available() else 'cpu',
+        'device': 'auto',  # cuda, Apple Silicon (mps) or cpu
         
         # Training settings
-        'num_episodes': 2000,
+        'num_episodes': args.episodes,
     }
     
     # Create trainer

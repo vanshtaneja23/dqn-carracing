@@ -320,17 +320,20 @@ function animateCounters() {
     const counters = document.querySelectorAll('.stat-number, .metric-value');
 
     counters.forEach(counter => {
-        const target = parseInt(counter.textContent.replace(/[^\d]/g, ''));
+        const text = counter.textContent.trim();
+        const target = parseInt(text.replace(/[^\d-]/g, ''), 10);
+        if (Number.isNaN(target)) return;  // e.g. '—' when no results exist yet
+        const suffix = text.endsWith('%') ? '%' : '';
         const increment = target / 100;
         let current = 0;
 
         const timer = setInterval(() => {
             current += increment;
             if (current >= target) {
-                counter.textContent = target.toLocaleString();
+                counter.textContent = target.toLocaleString() + suffix;
                 clearInterval(timer);
             } else {
-                counter.textContent = Math.floor(current).toLocaleString();
+                counter.textContent = Math.floor(current).toLocaleString() + suffix;
             }
         }, 20);
     });

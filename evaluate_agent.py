@@ -9,16 +9,18 @@ import matplotlib.pyplot as plt
 from dqn_agent import DQNAgent
 from environment import CarRacingWrapper
 import os
+import json
 
-def load_and_evaluate(model_path, num_episodes=10):
+def load_and_evaluate(model_path, num_episodes=10, save_results=False):
     """Load trained model and evaluate performance"""
     
     # Create environment and agent
-    env = CarRacingWrapper(skip_frames=4, stack_frames=4, reward_shaping=True)
+    # Standard CarRacing score: no reward shaping, no early termination
+    env = CarRacingWrapper(skip_frames=4, stack_frames=4, reward_shaping=False)
     agent = DQNAgent(
         state_shape=(4, 84, 84),
         n_actions=env.action_size,
-        device='cpu'
+        device='auto'
     )
     
     # Load trained model
@@ -76,6 +78,23 @@ def load_and_evaluate(model_path, num_episodes=10):
     else:
         print("❌ POOR: Agent needs more training or hyperparameter tuning")
     
+    # Save real results next to the model (CarRacing counts as solved at 900+ average)
+    results = {
+        'model': model_path,
+        'environment': 'mock' if env.is_mock else 'CarRacing-v3',
+        'episodes': num_episodes,
+        'avg_reward': float(avg_reward),
+        'std_reward': float(std_reward),
+        'best_reward': float(max(episode_rewards)),
+        'share_900_plus': float(np.mean(np.array(episode_rewards) >= 900)),
+        'rewards': [float(r) for r in episode_rewards],
+    }
+    if save_results:
+        out = os.path.join(os.path.dirname(os.path.dirname(model_path)), 'eval.json')
+        with open(out, 'w') as f:
+            json.dump(results, f, indent=2)
+        print(f"Saved results to {out}")
+
     env.close()
     return episode_rewards, episode_lengths
 
@@ -145,7 +164,7 @@ def main():
         print("\n" + "="*60)
         print("TESTING BEST MODEL")
         print("="*60)
-        load_and_evaluate(best_model_path, num_episodes=10)
+        load_and_evaluate(best_model_path, num_episodes=20, save_results=True)
     
     # Compare different checkpoints
     compare_models(run_dir)

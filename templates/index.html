@@ -59,22 +59,27 @@
                     <span class="gradient-text">Autonomous Racing</span>
                 </h1>
                 <p class="hero-subtitle">
-                    Advanced Deep Q-Network that learned autonomous racing, achieving
-                    <strong>{{ project_stats.avg_reward }}</strong> average reward score
-                    with <strong>{{ project_stats.success_rate }}%</strong> lap completion rate
+                    {% if project_stats.avg_reward is not none %}
+                    Deep Q-Network for Gymnasium CarRacing-v3, averaging
+                    <strong>{{ project_stats.avg_reward }}</strong> on the standard reward over
+                    {{ project_stats.eval_episodes }} evaluation episodes
+                    {% else %}
+                    Deep Q-Network for Gymnasium CarRacing-v3. Training on the real environment is
+                    in progress; measured results will appear here after evaluation.
+                    {% endif %}
                 </p>
                 <div class="hero-stats">
                     <div class="stat-item">
-                        <div class="stat-number">{{ project_stats.avg_reward }}</div>
-                        <div class="stat-label">Average Reward Score</div>
+                        <div class="stat-number">{{ project_stats.avg_reward if project_stats.avg_reward is not none else '—' }}</div>
+                        <div class="stat-label">Avg Evaluation Score</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-number">{{ project_stats.success_rate }}%</div>
-                        <div class="stat-label">Success Rate</div>
+                        <div class="stat-number">{{ (project_stats.success_rate|string) + '%' if project_stats.success_rate is not none else '—' }}</div>
+                        <div class="stat-label">Episodes Scoring 900+</div>
                     </div>
                     <div class="stat-item">
-                        <div class="stat-number">{{ project_stats.convergence_episodes }}</div>
-                        <div class="stat-label">Episodes to Converge</div>
+                        <div class="stat-number">{{ project_stats.total_episodes }}</div>
+                        <div class="stat-label">Episodes Trained</div>
                     </div>
                 </div>
                 <div class="hero-buttons">
@@ -115,8 +120,8 @@
                         <i class="fas fa-trophy"></i>
                     </div>
                     <h3>Reward Shaping</h3>
-                    <p>Optimized reward function with penalties for off-track behavior and bonuses for speed maintenance
-                        and lap completion.</p>
+                    <p>Training-only reward shaping: boosted rewards for on-track progress, heavier penalties for long
+                        off-track stretches, and early termination when the car is stuck. Evaluation uses the standard reward.</p>
                 </div>
                 <div class="overview-card">
                     <div class="card-icon">
@@ -150,7 +155,7 @@
                         <i class="fas fa-trophy"></i>
                     </div>
                     <div class="metric-content">
-                        <div class="metric-value">{{ "%.0f"|format(performance_data.final_performance) }}</div>
+                        <div class="metric-value">{{ "%.0f"|format(performance_data.final_performance) if performance_data else '—' }}</div>
                         <div class="metric-label">Final Reward Score</div>
                         <div class="metric-description">Average reward in last 100 episodes</div>
                     </div>
@@ -160,7 +165,7 @@
                         <i class="fas fa-chart-line"></i>
                     </div>
                     <div class="metric-content">
-                        <div class="metric-value">{{ "%.0f"|format(performance_data.peak_performance) }}</div>
+                        <div class="metric-value">{{ "%.0f"|format(performance_data.peak_performance) if performance_data else '—' }}</div>
                         <div class="metric-label">Best Single Episode</div>
                         <div class="metric-description">Highest reward achieved</div>
                     </div>
@@ -170,9 +175,9 @@
                         <i class="fas fa-clock"></i>
                     </div>
                     <div class="metric-content">
-                        <div class="metric-value">{{ project_stats.convergence_episodes }}</div>
+                        <div class="metric-value">{{ project_stats.total_episodes }}</div>
                         <div class="metric-label">Training Episodes</div>
-                        <div class="metric-description">Episodes needed to learn racing</div>
+                        <div class="metric-description">Logged across all runs</div>
                     </div>
                 </div>
                 <div class="metric-card">
@@ -180,9 +185,9 @@
                         <i class="fas fa-check-circle"></i>
                     </div>
                     <div class="metric-content">
-                        <div class="metric-value">{{ project_stats.success_rate }}%</div>
-                        <div class="metric-label">Lap Completion Rate</div>
-                        <div class="metric-description">Successfully completed laps</div>
+                        <div class="metric-value">{{ (project_stats.success_rate|string) + '%' if project_stats.success_rate is not none else '—' }}</div>
+                        <div class="metric-label">Episodes Scoring 900+</div>
+                        <div class="metric-description">CarRacing's "solved" threshold, standard reward</div>
                     </div>
                 </div>
             </div>
@@ -311,18 +316,18 @@
                     <div class="achievement-icon">
                         <i class="fas fa-rocket"></i>
                     </div>
-                    <h3>Excellent Performance</h3>
-                    <p>Achieved <strong>{{ project_stats.avg_reward }}</strong> average reward with
-                        consistent lap completion and stable learning convergence.</p>
+                    <h3>Measured, Not Estimated</h3>
+                    <p>Every score on this page comes from evaluate_agent.py on the standard
+                        CarRacing-v3 reward, with no reward shaping.</p>
                 </div>
 
                 <div class="achievement-card">
                     <div class="achievement-icon">
                         <i class="fas fa-tools"></i>
                     </div>
-                    <h3>Production-Ready Code</h3>
-                    <p>Modular architecture with comprehensive testing, experiment tracking, and automated diagnostic
-                        tools for training analysis.</p>
+                    <h3>Modular, Tracked Code</h3>
+                    <p>Separate agent, environment, training and evaluation modules, with TensorBoard tracking,
+                        checkpoints and a setup test script.</p>
                 </div>
 
                 <div class="achievement-card">
@@ -330,8 +335,8 @@
                         <i class="fas fa-chart-line"></i>
                     </div>
                     <h3>Advanced Analytics</h3>
-                    <p>Built comprehensive analysis framework with failure mode detection, performance visualization,
-                        and training recommendations.</p>
+                    <p>Analysis script for training diagnostics: reward curves, stability checks and checkpoint
+                        comparison.</p>
                 </div>
 
                 <div class="achievement-card">

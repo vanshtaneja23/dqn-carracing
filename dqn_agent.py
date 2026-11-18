@@ -7,6 +7,16 @@ import random
 from collections import deque
 import cv2
 
+def resolve_device(device='auto'):
+    """Pick cuda, Apple Silicon (mps) or cpu"""
+    if device in ('auto', 'cuda', 'mps'):
+        if torch.cuda.is_available():
+            return 'cuda'
+        if torch.backends.mps.is_available():
+            return 'mps'
+        return 'cpu'
+    return device
+
 class DQNNetwork(nn.Module):
     """Deep Q-Network for CarRacing environment"""
     
@@ -84,7 +94,7 @@ class DQNAgent:
         self.epsilon_end = epsilon_end
         self.epsilon_decay = epsilon_decay
         self.target_update = target_update
-        self.device = torch.device(device if torch.cuda.is_available() else 'cpu')
+        self.device = torch.device(resolve_device(device))
         
         # Networks
         self.q_network = DQNNetwork(state_shape[0], n_actions).to(self.device)
@@ -122,6 +132,10 @@ class DQNAgent:
             q_values = self.q_network(state_tensor)
             return q_values.max(1)[1].item()
     
+    def decay_epsilon(self):
+        """Decay exploration once per episode (per-step decay hit the floor after ~4 episodes)"""
+        self.epsilon = max(self.epsilon_end, self.epsilon * self.epsilon_decay)
+
     def store_experience(self, state, action, reward, next_state, done):
         """Store experience in replay buffer"""
         self.memory.push(state, action, reward, next_state, done)
@@ -149,18 +163,14 @@ class DQNAgent:
             next_q_values = self.target_network(next_states).max(1)[0]
             target_q_values = rewards + (self.gamma * next_q_values * ~dones)
         
-        # Compute loss
-        loss = F.mse_loss(current_q_values.squeeze(), target_q_values)
+        # Huber loss: standard for DQN, robust to large reward magnitudes
+        loss = F.smooth_l1_loss(current_q_values.squeeze(1), target_q_values)
         
         # Optimize
         self.optimizer.zero_grad()
         loss.backward()
         torch.nn.utils.clip_grad_norm_(self.q_network.parameters(), 10)
         self.optimizer.step()
-        
-        # Update epsilon
-        if self.epsilon > self.epsilon_end:
-            self.epsilon *= self.epsilon_decay
         
         # Update target network
         self.update_target_counter += 1
